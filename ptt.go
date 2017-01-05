@@ -3,11 +3,11 @@ package gopttcrawler
 import (
 	"errors"
 	"github.com/PuerkitoBio/goquery"
+	"math"
 	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
-	"math"
 )
 
 const (
@@ -22,6 +22,8 @@ type Article struct {
 	Author   string //Author ID
 	DateTime string
 	Nrec     int //推文數(推-噓)
+	Url      string
+	doc      *goquery.Document
 }
 
 type ArticleList struct {
@@ -45,6 +47,10 @@ func newDocument(url string) (*goquery.Document, error) {
 	req.AddCookie(&cookie)
 
 	res, e := http.DefaultClient.Do(req)
+
+	if e != nil {
+		return nil, e
+	}
 
 	if res.StatusCode != http.StatusOK {
 		return nil, errors.New(res.Status)
@@ -104,7 +110,7 @@ func GetArticles(board string, page int) (*ArticleList, error) {
 		nrecSel := s.Find(".nrec")
 		if len(nrecSel.Nodes) > 0 {
 			nrecStr := nrecSel.Text()
-			
+
 			if nrecStr == "爆" {
 				article.Nrec = math.MaxInt32
 			} else {
@@ -131,6 +137,7 @@ func GetArticles(board string, page int) (*ArticleList, error) {
 				if matchedID != nil && len(matchedID) > 1 {
 					article.ID = matchedID[1]
 					article.Title = strings.TrimSpace(linkSel.Text())
+					article.Url = BASE_URL + article.Board + "/" + article.ID + ".html"
 
 					if !stop {
 						articles = append(articles, article)
@@ -147,13 +154,16 @@ func GetArticles(board string, page int) (*ArticleList, error) {
 
 func LoadArticle(board, id string) (*Article, error) {
 	url := BASE_URL + board + "/" + id + ".html"
-	
 	doc, err := newDocument(url)
 
 	if err != nil {
 		return nil, err
 	}
 
+	return loadArticle(doc, board, id)
+}
+
+func loadArticle(doc *goquery.Document, board, id string) (*Article, error) {
 	article := &Article{ID: id, Board: board}
 
 	//Get title
@@ -175,7 +185,7 @@ func LoadArticle(board, id string) (*Article, error) {
 			article.DateTime = strings.TrimSpace(s.Text())
 		}
 	})
-	
+
 	meta.Remove() //Remove header
 
 	//Remove board name
@@ -196,6 +206,8 @@ func LoadArticle(board, id string) (*Article, error) {
 	sel := doc.Find("#main-content")
 	article.Content, _ = sel.Html()
 
+	article.Url = BASE_URL + article.Board + "/" + article.ID + ".html"
+
 	return article, nil
 }
 
@@ -208,7 +220,16 @@ func (aList *ArticleList) GetFromNextPage() (*ArticleList, error) {
 }
 
 func (a *Article) Load() *Article {
-	newA, err := LoadArticle(a.Board, a.ID)
+	url := a.Url
+	doc, err := newDocument(url)
+
+	if err != nil {
+		return a
+	}
+
+	a.doc = doc
+
+	newA, err := loadArticle(doc, a.Board, a.ID)
 	if err == nil {
 		*a = *newA
 	}
@@ -216,12 +237,15 @@ func (a *Article) Load() *Article {
 }
 
 func (a *Article) GetImageUrls() ([]string, error) {
-	url := BASE_URL + a.Board + "/" + a.ID + ".html"
+	doc := a.doc
+	if doc == nil {
+		var err error
+		doc, err = newDocument(a.Url)
 
-	doc, err := newDocument(url)
-
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
+		a.doc = doc
 	}
 
 	result := make([]string, 0)
@@ -236,12 +260,15 @@ func (a *Article) GetImageUrls() ([]string, error) {
 }
 
 func (a *Article) GetLinks() ([]string, error) {
-	url := BASE_URL + a.Board + "/" + a.ID + ".html"
+	doc := a.doc
 
-	doc, err := newDocument(url)
+	if doc == nil {
+		doc, err := newDocument(a.Url)
 
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
+		a.doc = doc
 	}
 
 	result := make([]string, 0)

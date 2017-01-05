@@ -1,9 +1,9 @@
 package gopttcrawler
 
 import (
-	"testing"
 	"github.com/stretchr/testify/assert"
 	"log"
+	"testing"
 )
 
 func TestGetArticles(t *testing.T) {
@@ -37,7 +37,7 @@ func TestLoadArticle(t *testing.T) {
 		a.Load()
 		log.Println(a.DateTime)
 		log.Println(a.Nrec)
-		
+
 		assert.NotEqual(a.Content, oa.Content)
 		_, e = a.GetImageUrls()
 		assert.Nil(e)
