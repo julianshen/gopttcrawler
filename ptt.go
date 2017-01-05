@@ -32,10 +32,18 @@ type ArticleList struct {
 
 func newDocument(url string) (*goquery.Document, error) {
 	// Load the URL
-	res, e := http.Get(url)
+	req, e := http.NewRequest("GET", url, nil)
 	if e != nil {
 		return nil, e
 	}
+
+	cookie := http.Cookie{
+		Name:  "over18",
+		Value: "1",
+	}
+	req.AddCookie(&cookie)
+
+	res, e := http.DefaultClient.Do(req)
 
 	if res.StatusCode != http.StatusOK {
 		return nil, errors.New(res.Status)
@@ -121,9 +129,9 @@ func GetArticles(board string, page int) (*ArticleList, error) {
 	return articleList, nil
 }
 
-func LoadArticles(board, id string) (*Article, error) {
+func LoadArticle(board, id string) (*Article, error) {
 	url := BASE_URL + board + "/" + id + ".html"
-
+	
 	doc, err := newDocument(url)
 
 	if err != nil {
@@ -180,7 +188,7 @@ func (aList *ArticleList) GetFromNextPage() (*ArticleList, error) {
 }
 
 func (a *Article) Load() *Article {
-	newA, err := LoadArticles(a.Board, a.ID)
+	newA, err := LoadArticle(a.Board, a.ID)
 	if err == nil {
 		*a = *newA
 	}
