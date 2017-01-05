@@ -184,9 +184,13 @@ func LoadArticle(board, id string) (*Article, error) {
 
 	push := doc.Find(".push")
 	//Count push
-	pushCnt := doc.Find(".push:contains('推')").Size()
-	booCnt := doc.Find(".push:contains('噓')").Size()
+	pushCnt := push.Find(".push-tag:contains('推')").Size()
+	booCnt := push.Find(".push-tag:contains('噓')").Size()
 	article.Nrec = pushCnt - booCnt
+
+	if article.Nrec < 0 {
+		article.Nrec = 0
+	}
 	push.Remove()
 
 	sel := doc.Find("#main-content")
