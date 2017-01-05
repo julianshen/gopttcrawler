@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"math"
 )
 
 const (
@@ -91,17 +92,29 @@ func GetArticles(board string, page int) (*ArticleList, error) {
 	}
 
 	articles := make([]*Article, 0)
+	stop := false
 	doc.Find(".r-ent").Each(func(i int, s *goquery.Selection) {
+		//過濾掉置底文章
+		if class, found := s.Prev().Attr("class"); found && class == "r-list-sep" {
+			stop = true
+		}
+
 		article := &Article{Board: board}
 		//Nrec
 		nrecSel := s.Find(".nrec")
 		if len(nrecSel.Nodes) > 0 {
-			article.Nrec, _ = strconv.Atoi(nrecSel.Text())
+			nrecStr := nrecSel.Text()
+			
+			if nrecStr == "爆" {
+				article.Nrec = math.MaxInt32
+			} else {
+				article.Nrec, _ = strconv.Atoi(nrecStr)
+			}
 		}
 		//DateTime
-		DateTimeSel := s.Find(".DateTime")
+		DateTimeSel := s.Find(".date")
 		if len(DateTimeSel.Nodes) > 0 {
-			article.DateTime = DateTimeSel.Text()
+			article.DateTime = strings.TrimSpace(DateTimeSel.Text())
 		}
 		//Author
 		authorSel := s.Find(".author")
@@ -118,7 +131,10 @@ func GetArticles(board string, page int) (*ArticleList, error) {
 				if matchedID != nil && len(matchedID) > 1 {
 					article.ID = matchedID[1]
 					article.Title = strings.TrimSpace(linkSel.Text())
-					articles = append(articles, article)
+
+					if !stop {
+						articles = append(articles, article)
+					}
 				}
 			}
 		}

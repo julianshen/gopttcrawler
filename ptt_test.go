@@ -32,7 +32,11 @@ func TestLoadArticle(t *testing.T) {
 
 	for _, a := range articles.Articles {
 		oa := *a
+		log.Println(a.DateTime)
+		log.Println(a.Nrec)
 		a.Load()
+		log.Println(a.DateTime)
+		log.Println(a.Nrec)
 		
 		assert.NotEqual(a.Content, oa.Content)
 		_, e = a.GetImageUrls()
