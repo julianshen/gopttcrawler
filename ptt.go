@@ -14,6 +14,10 @@ const (
 	BASE_URL = "https://www.ptt.cc/bbs/"
 )
 
+var (
+	ERROR_EMPTY_LIST = errors.New("list is empty")
+)
+
 type Article struct {
 	ID       string //Article ID
 	Board    string //Board name
@@ -32,6 +36,13 @@ type ArticleList struct {
 	PreviousPage int        //Previous page id
 	NextPage     int        //Next page id
 }
+
+type Iterator func() (*Article, error)
+
+func (i Iterator) Next() (*Article, error) {
+	return i()
+}
+
 
 func newDocument(url string) (*goquery.Document, error) {
 	// Load the URL
@@ -212,11 +223,46 @@ func loadArticle(doc *goquery.Document, board, id string) (*Article, error) {
 }
 
 func (aList *ArticleList) GetFromPreviousPage() (*ArticleList, error) {
-	return GetArticles(aList.Board, aList.PreviousPage)
+	newList, err := GetArticles(aList.Board, aList.PreviousPage)
+
+	if err != nil {
+		return aList, nil
+	}
+
+	*aList = *newList
+	return aList, nil
 }
 
 func (aList *ArticleList) GetFromNextPage() (*ArticleList, error) {
-	return GetArticles(aList.Board, aList.NextPage)
+	newList, err := GetArticles(aList.Board, aList.NextPage)
+
+	if err != nil {
+		return aList, nil
+	}
+
+	*aList = *newList
+	return aList, nil
+}
+
+func (aList *ArticleList)Iterator() Iterator {
+	index := 0
+
+	return func()(*Article, error) {
+		if index >= len(aList.Articles) && index != 0 {
+			if _, err := aList.GetFromPreviousPage(); err != nil {
+				return nil, err
+			}	
+			index = 0
+		} 
+
+		if aList.Articles == nil || len(aList.Articles) == 0 {
+			return nil, ERROR_EMPTY_LIST
+		}
+		
+		article := aList.Articles[index]
+		index ++
+		return article, nil
+	}
 }
 
 func (a *Article) Load() *Article {

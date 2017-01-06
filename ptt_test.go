@@ -43,3 +43,24 @@ func TestLoadArticle(t *testing.T) {
 		assert.Nil(e)
 	}
 }
+
+func TestIterator(t *testing.T) {
+	assert := assert.New(t)
+	n := 100
+
+	articles, e := GetArticles("movie", 0)
+	assert.Nil(e)
+	iterator := articles.Iterator()
+
+	i := 0
+	for {
+		if article, e := iterator.Next();e == nil {
+			if i >= n {
+				break
+			}
+			i++
+
+			log.Printf("%v %v", i, article)
+		}
+	}
+}
