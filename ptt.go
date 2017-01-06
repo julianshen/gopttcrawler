@@ -19,14 +19,14 @@ var (
 )
 
 type Article struct {
-	ID       string //Article ID
-	Board    string //Board name
-	Title    string
-	Content  string
-	Author   string //Author ID
-	DateTime string
-	Nrec     int //推文數(推-噓)
-	Url      string
+	ID       string `json:"id"`    //Article ID
+	Board    string `json:"board"` //Board name
+	Title    string `json:"title"`
+	Content  string `json:"content"`
+	Author   string `json:"author"` //Author ID
+	DateTime string `json:"date_time"`
+	Nrec     int    `json:"nrec"` //推文數(推-噓)
+	Url      string `json:"url"`
 	doc      *goquery.Document
 }
 
@@ -42,7 +42,6 @@ type Iterator func() (*Article, error)
 func (i Iterator) Next() (*Article, error) {
 	return i()
 }
-
 
 func newDocument(url string) (*goquery.Document, error) {
 	// Load the URL
@@ -244,23 +243,23 @@ func (aList *ArticleList) GetFromNextPage() (*ArticleList, error) {
 	return aList, nil
 }
 
-func (aList *ArticleList)Iterator() Iterator {
+func (aList *ArticleList) Iterator() Iterator {
 	index := 0
 
-	return func()(*Article, error) {
+	return func() (*Article, error) {
 		if index >= len(aList.Articles) && index != 0 {
 			if _, err := aList.GetFromPreviousPage(); err != nil {
 				return nil, err
-			}	
+			}
 			index = 0
-		} 
+		}
 
 		if aList.Articles == nil || len(aList.Articles) == 0 {
 			return nil, ERROR_EMPTY_LIST
 		}
-		
+
 		article := aList.Articles[index]
-		index ++
+		index++
 		return article, nil
 	}
 }

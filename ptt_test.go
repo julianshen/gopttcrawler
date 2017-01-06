@@ -54,7 +54,7 @@ func TestIterator(t *testing.T) {
 
 	i := 0
 	for {
-		if article, e := iterator.Next();e == nil {
+		if article, e := iterator.Next(); e == nil {
 			if i >= n {
 				break
 			}
