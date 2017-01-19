@@ -2,12 +2,14 @@ package gopttcrawler
 
 import (
 	"errors"
-	"github.com/PuerkitoBio/goquery"
+	"log"
 	"math"
 	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/PuerkitoBio/goquery"
 )
 
 const (
@@ -160,6 +162,41 @@ func GetArticles(board string, page int) (*ArticleList, error) {
 	articleList.Articles = articles
 
 	return articleList, nil
+}
+
+func GetArticlesGo(board string, page int) (<-chan *Article, chan bool) {
+	ch := make(chan *Article)
+	notifyCh := make(chan bool)
+
+	go func() {
+		defer close(ch)
+		defer close(notifyCh)
+
+		articles, err := GetArticles(board, page)
+
+		if err != nil {
+			log.Println(err)
+			close(ch)
+		}
+
+		i := articles.Iterator()
+		for {
+			if article, e := i.Next(); e != nil {
+				log.Println(err)
+				close(ch)
+				break
+			} else {
+				select {
+				case ch <- article:
+				case <-notifyCh:
+					log.Println("get notified")
+					break
+				}
+			}
+		}
+	}()
+
+	return ch, notifyCh
 }
 
 func LoadArticle(board, id string) (*Article, error) {

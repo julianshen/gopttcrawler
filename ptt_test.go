@@ -1,9 +1,10 @@
 package gopttcrawler
 
 import (
-	"github.com/stretchr/testify/assert"
 	"log"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetArticles(t *testing.T) {
@@ -63,4 +64,21 @@ func TestIterator(t *testing.T) {
 			log.Printf("%v %v", i, article)
 		}
 	}
+}
+
+func TestGetArcticlesGo(t *testing.T) {
+	assert := assert.New(t)
+
+	ch, done := GetArticlesGo("Beauty", 0)
+	n := 100
+	i := 0
+	for article := range ch {
+		if i >= n {
+			done <- true
+			break
+		}
+		i++
+		log.Printf("%v %v", i, article)
+	}
+	assert.Equal(100, i)
 }
